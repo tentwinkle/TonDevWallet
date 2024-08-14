@@ -222,7 +222,7 @@ export async function sendTonConnectStartMessage(
     payload: {
       device: {
         platform: 'windows',
-        appName: 'tonkeeper',
+        appName: 'Tonkeeper',
         appVersion: '0.3.3',
         maxProtocolVersion: 2,
         features: [
