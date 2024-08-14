@@ -1,5 +1,5 @@
 // interface
-import clsx from 'clsx'
+import { cn } from '@/utils/cn'
 
 interface BlockParams extends React.HTMLProps<HTMLDivElement> {
   bg?: string | boolean
@@ -7,14 +7,7 @@ interface BlockParams extends React.HTMLProps<HTMLDivElement> {
 
 export function Block({ children, className, bg, ...options }: BlockParams) {
   return (
-    <div
-      {...options}
-      className={clsx(
-        className,
-        bg || 'dark:bg-foreground/5 bg-background',
-        'rounded dark:shadow border dark:border-none p-2'
-      )}
-    >
+    <div {...options} className={cn(bg, 'rounded-xl dark:shadow border p-4', className)}>
       {children}
     </div>
   )

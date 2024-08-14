@@ -1,7 +1,7 @@
 import { setTransactionState, useTransactionState } from '@/store/txInfo'
 import { listen } from '@tauri-apps/api/event'
 import { useEffect, useState } from 'react'
-import { Cell, loadTransaction } from 'ton-core'
+import { Cell, loadTransaction } from '@ton/core'
 import { VmLogsInfo } from './VmLogsInfo'
 import { VmStackInfo } from './VmStackInfo'
 
@@ -36,7 +36,7 @@ export function TxInfoPage() {
   const [stack, setStack] = useState('')
 
   return (
-    <div className="h-screen">
+    <div className="h-screen bg-gray-100 dark:bg-gray-900">
       <div className="grid grid-cols-2 md:grid-cols-[400px_1fr] h-full overflow-hidden relative">
         <VmLogsInfo logs={transactionState.vmLogs.get()} setStack={setStack} />
         <VmStackInfo stack={stack} />

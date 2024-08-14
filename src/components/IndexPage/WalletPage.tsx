@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import Wallet from '@/components/wallets/tonweb/Wallet'
 import HighloadWallet from '@/components/wallets/highload/Wallet'
@@ -11,10 +11,54 @@ import { setWalletKey, useSelectedKey, useSelectedWallet } from '@/store/walletS
 import { useLiteclient } from '@/store/liteClient'
 import { LiteClient } from 'ton-lite-client'
 import { useParams } from 'react-router-dom'
-import { useWalletListState } from '@/store/walletsListState'
+import { updateWalletName, useWalletListState } from '@/store/walletsListState'
 import { getWalletFromKey } from '@/utils/wallets'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faWallet } from '@fortawesome/free-solid-svg-icons'
+import { faFileEdit, faWallet } from '@fortawesome/free-solid-svg-icons'
+import { BlueButton } from '@/components/ui/BlueButton'
+import { Input } from '../ui/input'
+
+function WalletHeader(props: { name?: string; keyId: number }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [newName, setNewName] = useState('')
+  return isEditing ? (
+    <div>
+      <h1 className="font-bold text-xl mt-2 mb-4">
+        Wallet {props.name} <FontAwesomeIcon icon={faFileEdit} onClick={() => setIsEditing(true)} />
+      </h1>
+      <div className={'flex flex-col mt-1 mb-4 gap-2'}>
+        <label htmlFor="newNameInput">New wallet name:</label>
+
+        <Input
+          id={'newNameInput'}
+          type="text"
+          className="border border-gray-300 rounded-md p-2"
+          value={newName}
+          onInput={(e) => setNewName((e.target as HTMLInputElement).value)}
+        />
+        <BlueButton
+          onClick={async () => {
+            setIsEditing(false)
+            await updateWalletName(newName, props.keyId)
+          }}
+        >
+          Save
+        </BlueButton>
+      </div>
+    </div>
+  ) : (
+    <h1 className="font-bold text-xl mt-2 mb-4">
+      Wallet {props.name}{' '}
+      <FontAwesomeIcon
+        icon={faFileEdit}
+        onClick={() => {
+          setNewName(props.name || '')
+          setIsEditing(true)
+        }}
+      />
+    </h1>
+  )
+}
 
 export function WalletPage() {
   const liteClient = useLiteclient() as unknown as LiteClient
@@ -22,24 +66,15 @@ export function WalletPage() {
   const walletsList = useWalletListState()
 
   useEffect(() => {
-    console.log('liteclient hook')
-    liteClient.getMasterchainInfo().then((res) => {
-      console.log('info', res)
-    })
-  }, [])
-
-  useEffect(() => {
     const id = parseInt(urlParams.walletId || '')
     const selectedWallet = walletsList.get().find((i) => i.id === id)
     if (selectedWallet) {
-      setWalletKey(selectedWallet.id)
+      setWalletKey(selectedWallet.id).then()
     }
   }, [urlParams.walletId])
-
   const key = useSelectedKey()
   const selectedWallet = useSelectedWallet()
-
-  const wallets = useMemo<IWallet[]>(() => {
+  const walletsToShow = useMemo<IWallet[]>(() => {
     if (!key?.public_key) {
       return []
     }
@@ -57,28 +92,22 @@ export function WalletPage() {
     return wallets
   }, [key, key?.wallets, liteClient])
 
-  const walletsToShow = wallets
-
   return (
-    <div className="grid grid-cols-[1fr_1fr] gap-4 justify-center flex-col md:flex-row">
-      {/* <div className="flex flex-1"> */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 justify-center">
       <div className="md:max-w-xl min-w-0 w-full flex-grow-0 flex flex-col">
-        <h1 className="font-bold text-xl mt-2 mb-4">Wallet {key?.name.get()}</h1>
+        <WalletHeader name={key?.name.get()} keyId={key?.id.get() || 0} />
         <WalletGenerator />
         <WalletsTable walletsToShow={walletsToShow} />
       </div>
-      <div className="md:max-w-xl min-w-0 w-full flex-grow-0 flex flex-col mt-[6.75rem]">
+      <div className="md:max-w-xl min-w-0 w-full flex-grow-0 flex flex-col mt-4 md:mt-0">
         {selectedWallet ? (
           selectedWallet?.type === 'highload' ? (
             <HighloadWallet />
           ) : (
-            // : wallet.selectedWallet.get()?.type === 'external' ? (
-            // <ExternalWallet />
-            // )
             <Wallet />
           )
         ) : (
-          <div className="flex flex-col justify-center h-screen mt-[-6.75rem]">
+          <div className="flex flex-col justify-center h-full">
             <div className="flex flex-col items-center text-gray-500">
               <FontAwesomeIcon icon={faWallet} className="mr-1" size={'4x'} />
               <div className="mt-2">Select wallet</div>
@@ -86,7 +115,6 @@ export function WalletPage() {
           </div>
         )}
       </div>
-      {/* </div> */}
     </div>
   )
 }

@@ -13,10 +13,20 @@ import { NavLink } from 'react-router-dom'
 import { LiteClient } from 'ton-lite-client'
 import { AddressRow } from '../AddressRow'
 import { KeyJazzicon } from '../KeyJazzicon'
-import { ReactPopup } from '../Popup'
 import { Block } from '../ui/Block'
-import { BlueButton } from '../ui/BlueButton'
 import { WalletJazzicon } from '../WalletJazzicon'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
 
 export function SessionsList() {
   const sessions = useTonConnectSessions()
@@ -24,10 +34,7 @@ export function SessionsList() {
   const liteClient = useLiteclient() as unknown as LiteClient
 
   return (
-    <div className="gap-2 flex flex-col mb-8">
-      <div className="flex justify-between">
-        <h3 className="text-lg">Active Sessions:</h3>
-      </div>
+    <div className="mb-8 grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 p-4 bg-gray-100 dark:bg-gray-900 rounded-lg shadow-md">
       {sessions.map((s) => {
         const key = keys.find((k) => k.id.get() === s.keyId.get())
         if (!key) {
@@ -44,14 +51,14 @@ export function SessionsList() {
         return (
           <Block
             // className="dark:bg-foreground/5 bg-background rounded dark:shadow border-2 dark:border-none p-2"
-            className="overflow-hidden flex flex-col gap-2"
+            className="overflow-hidden flex flex-col gap-2 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md"
             key={s.id.get()}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <img src={s.iconUrl.get()} alt="icon" className="w-8 h-8 rounded-full" />
-                <div className="ml-2">{s.name.get()}</div>
-                <FontAwesomeIcon icon={faPlus} className="mx-1" />
+                <div className="ml-2 text-gray-700 dark:text-gray-300">{s.name.get()}</div>
+                <FontAwesomeIcon icon={faPlus} className="mx-1 text-gray-700 dark:text-gray-300" />
 
                 <NavLink
                   className="flex"
@@ -66,69 +73,64 @@ export function SessionsList() {
                 </NavLink>
               </div>
 
-              <ReactPopup
-                trigger={() => (
-                  <div>
-                    <button
-                      className="cursor-pointer text-accent dark:text-accent-light"
-                      onClick={async (e) => {
-                        if (e.ctrlKey) {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          deleteTonConnectSession(s)
-                        }
-                      }}
-                    >
-                      <FontAwesomeIcon icon={faClose} className="mx-1" />
-                    </button>
-                  </div>
-                )}
-              >
-                {(close: () => void) => {
-                  return (
-                    <div className="flex flex-col gap-2 p-2">
-                      <p>To close session without confirm popup use Ctrl + Click</p>
-                      <div className="flex gap-2">
-                        <BlueButton
-                          className="bg-red-500"
-                          onClick={async () => {
-                            await deleteTonConnectSession(s)
-                            close()
-                          }}
-                          // onClick={async () => {
-                          //   await deleteWallet(wallet.id)
-                          //   close()
-                          // }}
-                        >
-                          Confirm
-                        </BlueButton>
-                        <BlueButton className="" onClick={close}>
-                          Cancel
-                        </BlueButton>
-                      </div>
-                    </div>
-                  )
-                }}
-              </ReactPopup>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  {/* <Button variant="outline" onClick={(e) => {}}> */}
+                  {/* <div> */}
+                  <Button
+                    variant={'ghost'}
+                    className={'px-2'}
+                    // className="cursor-pointer text-accent dark:text-accent-light"
+                    onClick={async (e) => {
+                      if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        deleteTonConnectSession(s)
+                      }
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faClose} className="mx-1" />
+                  </Button>
+                  {/* </div> */}
+                  {/* </Button> */}
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Your session will be deleted, and will disconnect from service
+                    </AlertDialogDescription>
+                    <AlertDialogDescription>
+                      To close session without confirm popup use Ctrl + Click or CMD + Click
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => deleteTonConnectSession(s)}>
+                      Continue
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
 
-            <a href={s.url.get()} target="_blank" className="" rel="noopener noreferrer">
+            <a href={s.url.get()} target="_blank" className="text-blue-500 dark:text-blue-300" rel="noopener noreferrer">
               {s.url.get()}
             </a>
 
-            <div className="flex justify-between">
+            <div className="flex justify-between text-gray-700 dark:text-gray-300">
               <div className="flex">
                 <div>Type:&nbsp;</div>
                 <div>{tonWallet?.type}</div>
               </div>
               <div className="flex">
                 <div>SubId:&nbsp;</div>
-                <div>{tonWallet?.subwalletId || 'Default'}</div>
+                <div>{tonWallet?.subwalletId.toString() || 'Default'}</div>
               </div>
             </div>
 
             <AddressRow
-              text={<span className="w-24 flex-shrink-0">Address:</span>}
+              text={<span className="w-24 flex-shrink-0 text-gray-700 dark:text-gray-300">Address:</span>}
               address={tonWallet?.address}
             />
 
@@ -144,7 +146,7 @@ export function SessionsList() {
               />
               <label
                 htmlFor={`autosend_input_${s.id.get()}`}
-                className="w-full ml-2 cursor-pointer"
+                className="w-full ml-2 cursor-pointer text-gray-700 dark:text-gray-300"
               >
                 Send without confirmation?
               </label>

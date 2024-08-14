@@ -2,7 +2,7 @@ import { getDatabase } from '@/db'
 import { ConnectMessageTransaction, ConnectSession, LastSelectedWallets } from '@/types/connect'
 import { sendTonConnectMessage } from '@/utils/tonConnect'
 import { hookstate, State, useHookstate } from '@hookstate/core'
-import { getConnectMessages, messagesState } from './connectMessages'
+import { removeConnectMessages } from './connectMessages'
 
 export interface TonConnectSession {
   id: number
@@ -16,11 +16,14 @@ export interface TonConnectSession {
   iconUrl: string
   autoSend: boolean
 }
+
 export interface TonConnectState {
   sessions: TonConnectSession[]
 
   popupOpen: boolean
   connectArg: string
+
+  qrcodeOpen: boolean
 }
 
 const state = hookstate<TonConnectState>(async () => {
@@ -29,6 +32,8 @@ const state = hookstate<TonConnectState>(async () => {
 
     popupOpen: false,
     connectArg: '',
+
+    qrcodeOpen: false,
   }
 })
 
@@ -145,31 +150,38 @@ export async function setTonConnectSessionAutoSend({
 
 export async function deleteTonConnectSession(session: State<TonConnectSession>) {
   // const session =
-  sendTonConnectMessage(
-    {
-      event: 'disconnect',
-      payload: {},
-      id: Date.now(),
-    },
-    session?.secretKey.get() || Buffer.from(''),
-    session?.userId?.get() || ''
-  )
 
-  const db = await getDatabase()
-  await db<ConnectMessageTransaction>('connect_message_transactions')
-    .where({
-      connect_session_id: session.id.get(),
-    })
-    .delete()
-  await db<ConnectSession>('connect_sessions')
-    .where({
-      id: session.id.get(),
-    })
-    .delete()
+  try {
+    await sendTonConnectMessage(
+      {
+        event: 'disconnect',
+        payload: {},
+        id: Date.now(),
+      },
+      session?.secretKey.get() || Buffer.from(''),
+      session?.userId?.get() || ''
+    )
 
-  state.sessions.set(await getSessions())
-  messagesState.set(await getConnectMessages())
+    const db = await getDatabase()
+    await db<ConnectMessageTransaction>('connect_message_transactions')
+      .where({
+        connect_session_id: session.id.get(),
+      })
+      .delete()
+    await db<ConnectSession>('connect_sessions')
+      .where({
+        id: session.id.get(),
+      })
+      .delete()
+
+    state.sessions.set(await getSessions())
+    await removeConnectMessages()
+  } catch (e) {
+    console.log('Delete session error', e)
+    throw e
+  }
 }
+
 export async function updateSessionEventId(id: number, eventId: number) {
   const db = await getDatabase()
   const session = state.sessions.find((s) => s.get().id === id)
@@ -187,7 +199,6 @@ export async function updateSessionEventId(id: number, eventId: number) {
     .update({
       last_event_id: eventId,
     })
-  console.log('updated', session, eventId)
 }
 
 export function closeTonConnectPopup() {
